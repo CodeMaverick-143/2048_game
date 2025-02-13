@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2048 Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="flex justify-center items-center min-h-screen bg-gray-900 text-white">
+
+    <div class="text-center">
+        <h1 class="text-4xl font-bold mb-4">2048 Game</h1>
+        <p class="text-lg mb-2">Score: <span id="score" class="font-bold">0</span></p>
+        <div id="game-board" class="grid grid-cols-4 gap-2 bg-gray-800 p-4 rounded-lg shadow-lg w-64 h-64">
+            <!-- Tiles will be dynamically generated here -->
+        </div>
+        <p class="mt-4 text-sm opacity-75">Use arrow keys to move the tiles</p>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const boardSize = 4;
+            let board = Array(boardSize).fill().map(() => Array(boardSize).fill(0));
+            let score = 0;
+
+            const gameBoard = document.getElementById("game-board");
+            const scoreDisplay = document.getElementById("score");
+
+            function updateBoard() {
+                gameBoard.innerHTML = "";
+                board.forEach(row => {
+                    row.forEach(num => {
+                        const tile = document.createElement("div");
+                        tile.className = `flex items-center justify-center font-bold text-lg w-14 h-14 rounded-lg ${
+                            num ? `bg-${getColor(num)} text-gray-900` : "bg-gray-700"
+                        }`;
+                        tile.textContent = num || "";
+                        gameBoard.appendChild(tile);
+                    });
+                });
+                scoreDisplay.textContent = score;
+            }
+
+            function getColor(value) {
+                const colors = {
+                    2: "yellow-200", 4: "yellow-400", 8: "orange-400",
+                    16: "red-400", 32: "red-500", 64: "red-600",
+                    128: "green-400", 256: "green-500", 512: "green-600",
+                    1024: "blue-400", 2048: "blue-500"
+                };
+                return colors[value] || "gray-300";
+            }
+
+            function addRandomTile() {
+                let emptyCells = [];
+                board.forEach((row, r) => {
+                    row.forEach((num, c) => {
+                        if (num === 0) emptyCells.push([r, c]);
+                    });
+                });
+                if (emptyCells.length > 0) {
+                    let [r, c] = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+                    board[r][c] = Math.random() > 0.1 ? 2 : 4;
+                }
+            }
+
+            function slide(row) {
+                row = row.filter(num => num);
+                for (let i = 0; i < row.length - 1; i++) {
+                    if (row[i] === row[i + 1]) {
+                        row[i] *= 2;
+                        score += row[i];
+                        row[i + 1] = 0;
+                    }
+                }
+                row = row.filter(num => num);
+                while (row.length < boardSize) row.push(0);
+                return row;
+            }
+
+            function rotateBoard(clockwise = true) {
+                let newBoard = Array(boardSize).fill().map(() => Array(boardSize).fill(0));
+                for (let r = 0; r < boardSize; r++) {
+                    for (let c = 0; c < boardSize; c++) {
+                        if (clockwise) {
+                            newBoard[c][boardSize - 1 - r] = board[r][c];
+                        } else {
+                            newBoard[boardSize - 1 - c][r] = board[r][c];
+                        }
+                    }
+                }
+                board = newBoard;
+            }
+
+            function move(direction) {
+                let rotated = false;
+                if (direction === "up") { rotateBoard(); rotated = true; }
+                if (direction === "down") { rotateBoard(false); rotated = true; rotateBoard(false); rotateBoard(false); }
+                if (direction === "right") { rotateBoard(false); rotated = true; }
+
+                let moved = false;
+                for (let r = 0; r < boardSize; r++) {
+                    let newRow = slide(board[r]);
+                    if (JSON.stringify(board[r]) !== JSON.stringify(newRow)) moved = true;
+                    board[r] = newRow;
+                }
+
+                if (rotated) {
+                    if (direction === "up") { rotateBoard(false); }
+                    if (direction === "down") { rotateBoard(); rotateBoard(); rotateBoard(); }
+                    if (direction === "right") { rotateBoard(); }
+                }
+
+                if (moved) {
+                    addRandomTile();
+                    updateBoard();
+                    checkGameOver();
+                }
+            }
+
+            function checkGameOver() {
+                for (let r = 0; r < boardSize; r++) {
+                    for (let c = 0; c < boardSize; c++) {
+                        if (board[r][c] === 0) return;
+                        if (c < boardSize - 1 && board[r][c] === board[r][c + 1]) return;
+                        if (r < boardSize - 1 && board[r][c] === board[r + 1][c]) return;
+                    }
+                }
+                setTimeout(() => alert("Game Over!"), 100);
+            }
+
+            document.addEventListener("keydown", event => {
+                if (event.key === "ArrowLeft") move("left");
+                if (event.key === "ArrowRight") move("right");
+                if (event.key === "ArrowUp") move("up");
+                if (event.key === "ArrowDown") move("down");
+            });
+
+            function startGame() {
+                board = Array(boardSize).fill().map(() => Array(boardSize).fill(0));
+                score = 0;
+                addRandomTile();
+                addRandomTile();
+                updateBoard();
+            }
+
+            startGame();
+        });
+    </script>
+
+</body>
+</html>
